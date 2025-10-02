@@ -1,0 +1,17 @@
+{
+  "name": "npm-publish-workflow-test",
+  "version": "0.0.1",
+  "description": "Test package for validating npm publish workflow with trusted publishers",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'Build complete'",
+    "lint": "echo 'Linting complete'"
+  },
+  "keywords": ["test", "workflow"],
+  "author": "Your Name",
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "README.md"
+  ]
+}

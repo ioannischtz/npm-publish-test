@@ -1,0 +1,117 @@
+name: NPM Publish with Trusted Publishers
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      should_publish: ${{ steps.version-check.outputs.should_publish }}
+      current_version: ${{ steps.version-check.outputs.current_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Check version against npm registry
+        id: version-check
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+          # Check if this version exists on npm
+          if npm view "$PACKAGE_NAME@$CURRENT_VERSION" version 2>/dev/null; then
+            echo "Version $CURRENT_VERSION already exists on npm"
+            SHOULD_PUBLISH=false
+          else
+            echo "Version $CURRENT_VERSION does not exist on npm"
+            SHOULD_PUBLISH=true
+          fi
+
+          echo "should_publish=$SHOULD_PUBLISH" >> $GITHUB_OUTPUT
+          echo "Should publish: $SHOULD_PUBLISH"
+
+  npm-publish:
+    needs: check-version
+    if: needs.check-version.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Changed from read to write for creating releases
+      id-token: write # Required for trusted publishers OIDC
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js with npm registry
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build package
+        run: npm run build
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Ensure npm version 11.5.1+
+        run: |
+          # Install npm 11.5.1+ which is required for trusted publishers
+          npm install -g npm@latest
+          npm --version
+
+      - name: TEST - Create tarball instead of publishing
+        run: |
+          echo "====================================="
+          echo "TEST MODE: Creating tarball (not publishing to npm)"
+          echo "====================================="
+          npm pack
+          echo ""
+          echo "Tarball created successfully!"
+          ls -lh *.tgz
+
+      # COMMENTED OUT - This is what would run in production
+      # - name: Publish to npm with trusted publishers
+      #   run: |
+      #     # No --provenance flag needed - it's automatic with trusted publishers
+      #     npm publish --access public
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ needs.check-version.outputs.current_version }}"
+          name: "Release v${{ needs.check-version.outputs.current_version }}"
+          body: |
+            **TEST RELEASE** - npm publish was skipped
+
+            Release of npm-publish-workflow-test v${{ needs.check-version.outputs.current_version }}
+
+            This is a test of the release workflow. The package was NOT published to npm.
+          draft: false
+          prerelease: false
+          files: "*.tgz"
+
+  skip-publish:
+    needs: check-version
+    if: needs.check-version.outputs.should_publish == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip publish notification
+        run: |
+          echo "::notice::Skipping publish - version ${{ needs.check-version.outputs.current_version }} already exists on npm"
