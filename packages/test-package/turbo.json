@@ -1,0 +1,17 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"tasks": {
+		"lint": {},
+		"test": {
+			"dependsOn": ["^build", "build"]
+		},
+		"build": {
+			"dependsOn": ["^build"],
+			"outputs": [
+				"build/**",
+				"dist/**"
+			]
+		}
+	},
+	"globalEnv": ["NODE_ENV", "CI"]
+}

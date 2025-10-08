@@ -1,0 +1,40 @@
+{
+	"name": "@test/test-package",
+	"version": "0.0.1",
+	"description": "Test package for CI workflow validation",
+	"license": "MIT",
+	"type": "commonjs",
+	"main": "./dist/cjs/index.js",
+	"module": "./dist/esm/index.js",
+	"types": "./dist/cjs/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/esm/index.js",
+			"require": "./dist/cjs/index.js"
+		}
+	},
+	"sideEffects": false,
+	"files": [
+		"README.md",
+		"dist"
+	],
+	"scripts": {
+		"clean": "rm -rf tsconfig.tsbuildinfo ./dist",
+		"build": "build-test-package",
+		"test": "echo 'No tests'",
+		"lint": "echo 'Linting passed'",
+		"prepublishOnly": "pnpm turbo build",
+		"prettier:check": "prettier -c --ignore-unknown .",
+		"prettier:fix": "prettier -w --ignore-unknown ."
+	},
+	"devDependencies": {
+		"@test/test-build-scripts": "workspace:*",
+		"typescript": "^5.9.2",
+		"turbo": "^2.5.6",
+		"prettier": "^3.6.2"
+	},
+	"engines": {
+		"pnpm": ">=10.17.0"
+	},
+	"packageManager": "pnpm@10.17.0"
+}

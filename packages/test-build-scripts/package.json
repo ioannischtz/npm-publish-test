@@ -1,0 +1,16 @@
+{
+  "name": "@test/test-build-scripts",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Build scripts for test packages",
+  "license": "MIT",
+  "bin": {
+    "build-test-package": "./src/build.js"
+  },
+  "scripts": {
+    "build": "echo 'Build scripts ready'"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}
