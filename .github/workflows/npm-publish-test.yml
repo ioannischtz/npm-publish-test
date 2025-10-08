@@ -73,14 +73,13 @@ jobs:
           echo "should_publish=$SHOULD_PUBLISH" >> $GITHUB_OUTPUT
           echo "Should publish: $SHOULD_PUBLISH"
 
-  npm-publish-dry-run:
+  npm-publish:
     needs: check-version
-    # HARDCODED to never run - this is a test workflow
-    if: false
+    if: needs.check-version.outputs.should_publish == 'true' && needs.check-version.outputs.package_changed == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      id-token: write
+      contents: write # Required for creating GitHub releases
+      id-token: write # Required for trusted publishers OIDC
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -115,29 +114,37 @@ jobs:
 
       - name: Ensure npm version 11.5.1+
         run: |
+          # Install npm 11.5.1+ which is required for trusted publishers
           npm install -g npm@latest
           npm --version
 
-      - name: Publish to npm (DRY RUN - would be disabled)
+      - name: Publish to npm with trusted publishers
         run: |
           cd packages/test-package
-          echo "Would run: npm publish --access public"
-          echo "This step is disabled for testing"
+          # DRY RUN: Using --dry-run flag instead of actual publish
+          npm publish --access public --dry-run
 
-  validation-summary:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ needs.check-version.outputs.current_version }}"
+          name: "Release v${{ needs.check-version.outputs.current_version }}"
+          body: |
+            Release of @test/test-package v${{ needs.check-version.outputs.current_version }}
+
+            Published to npm with trusted publishers and automatic provenance attestation.
+          draft: false
+          prerelease: false
+
+  skip-publish:
     needs: check-version
-    if: always()
+    if: needs.check-version.outputs.should_publish == 'false' || needs.check-version.outputs.package_changed == 'false'
     runs-on: ubuntu-latest
     steps:
-      - name: Display workflow validation results
+      - name: Skip publish notification
         run: |
-          echo "=== Workflow Validation Summary ==="
-          echo "Package changed: ${{ needs.check-version.outputs.package_changed }}"
-          echo "Should publish: ${{ needs.check-version.outputs.should_publish }}"
-          echo "Current version: ${{ needs.check-version.outputs.current_version }}"
-          echo ""
-          echo "✓ Workflow structure validated"
-          echo "✓ Path filters tested"
-          echo "✓ pnpm workspace setup verified"
-          echo ""
-          echo "NOTE: npm publish is hardcoded to never run (if: false)"
+          if [ "${{ needs.check-version.outputs.should_publish }}" = "false" ]; then
+            echo "::notice::Skipping publish - version ${{ needs.check-version.outputs.current_version }} already exists on npm"
+          elif [ "${{ needs.check-version.outputs.package_changed }}" = "false" ]; then
+            echo "::notice::Skipping publish - no changes detected in packages/test-package/ (excluding docs)"
+          fi
