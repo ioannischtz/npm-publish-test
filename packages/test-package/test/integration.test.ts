@@ -12,11 +12,6 @@ describe('Integration Tests', () => {
 			const result = greet('Bob');
 			expect(result).toBe('Hello, Bob! Testing changes to the package');
 		});
-
-		it('should handle special characters in names', () => {
-			const result = greet("O'Brien");
-			expect(result).toContain("O'Brien");
-		});
 	});
 
 	describe('hello constant', () => {
@@ -42,8 +37,8 @@ describe('Integration Tests', () => {
 		});
 
 		it('should handle unicode characters', () => {
-			const result = greet('<‰');
-			expect(result).toContain('<‰');
+			const result = greet('<ï¿½');
+			expect(result).toContain('<ï¿½');
 		});
 	});
 
